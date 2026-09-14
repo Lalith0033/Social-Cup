@@ -25,6 +25,12 @@ export default tseslint.config(
     },
   },
   {
+    files: ['apps/api/**/*.mjs'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+  {
     files: ['apps/admin-web/**/*.{ts,tsx}', 'apps/barista-web/**/*.{ts,tsx}'],
     languageOptions: {
       globals: globals.browser,

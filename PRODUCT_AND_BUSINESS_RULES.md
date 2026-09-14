@@ -1,7 +1,7 @@
 # Social Cup — Master Product, Business Rules & Behavior Registry
 
 > **Status:** Living Specification & Single Source of Truth  
-> **Last Updated:** 2026-09-08  
+> **Last Updated:** 2026-09-09  
 > **Scope:** Phase 1 Release — Dallas Coffee Network  
 
 This document serves as the authoritative, centralized registry for all **functional requirements, business rules, entity behaviors, system duties, user roles, financial invariants, and state transitions** for Social Cup. Whenever new requirements or design decisions are established, they must be recorded here.
@@ -30,6 +30,8 @@ This document serves as the authoritative, centralized registry for all **functi
 | **Active Member** | Mobile App (iOS / Android) | JWT (Email, Google, Apple) | • All Visitor permissions.<br>• Holds active monthly subscription ($24.99/mo).<br>• Holds 1–30 drink credits.<br>• Generates single-use, 5-minute counter redemption QR / 6-digit codes.<br>• Accesses Stripe Customer Portal for billing management. |
 | **Partner Barista** | Mobile Web Scanner (No App / No Account) | Cafe PIN $\rightarrow$ Trusted Device Cookie | • Opens private mobile web link on shop phone/tablet.<br>• Enters 4-digit cafe PIN once to trust device.<br>• Scans member QR codes or enters 6-digit backup code.<br>• Receives instant Green (valid) or Red (error reason) feedback.<br>• Views "Today" shift log of processed redemptions.<br>• *Restricted:* Cannot view financial reports, member billing data, or edit menus. |
 | **Platform Administrator** | Web Admin Panel (Desktop React SPA) | Admin JWT + Password / 2FA | • Onboard/edit cafes, coordinates, opening hours, vibe tags, photos.<br>• Set/reset cafe PINs (instantly invalidates trusted barista devices).<br>• Configure cafe payout rate per credit ($\$$/credit).<br>• Manage drink menus, retail prices, and integer credit prices.<br>• Use Live Margin Calculator during drink pricing.<br>• Audit redemption logs, execute voids with logged reasons.<br>• Compile monthly payout batches, export CSV statements, record bank wires. |
+
+> **Terminology Note:** "Registered Visitor" above is a **role** — a verified (`account.status = ACTIVE`), subscription-less user (`subscription.status = NONE`). This is distinct from `REGISTERED` in §5.1, which is an **account-verification lifecycle state** (a signed-up but not-yet-verified account). The two uses of "registered" describe different axes and must not be conflated in code, schema, or enum naming.
 
 ---
 
@@ -61,12 +63,14 @@ This document serves as the authoritative, centralized registry for all **functi
    * A 6-digit alphanumeric backup code (e.g., `K9B2A7`) is generated and bound to `cafe_id`.
    * Validity duration is **strictly 300 seconds (5 minutes)**. Server UTC time is the sole authority.
    * A member may hold **only one active pending token** at a time. Generating a new code cancels the previous one.
+   * Token generation MAY perform a non-authoritative, fail-fast membership-eligibility check (see step 6) to avoid generating a token the member cannot redeem. This check is advisory only and never substitutes for the authoritative check at scan time.
 3. **Counter Presentation:** The mobile screen displays the QR code at maximum brightness with an animated 5-minute countdown.
 4. **Member Polling:** While the redemption modal is open, the mobile app polls `GET /api/v1/redemptions/active` every 1.5 seconds.
 5. **Barista Scan:** Barista scans the QR code with their mobile web scanner (or types the 6-digit backup code).
 6. **Server Atomic Verification (<3 Seconds):**
    * Server locks the token row: `SELECT * FROM redemption_tokens WHERE token_hash = $1 FOR UPDATE`.
    * Checks: Token is `PENDING`, `NOW() <= expires_at`, `token.cafe_id == barista.cafe_id`.
+   * Checks membership eligibility (**authoritative**): `account.status == ACTIVE` AND (`subscription.status IN ('ACTIVE', 'PAST_DUE')` OR (`subscription.status == 'CANCELING'` AND `NOW() <= subscription.current_period_end`)). Any other combination fails with `MEMBERSHIP_INACTIVE` (see §5.2 Redemption Entitlement by State).
    * Server locks user balance: `SELECT current_balance FROM user_credit_balances WHERE user_id = $1 FOR UPDATE`.
    * Asserts: `current_balance >= token.credit_cost`.
    * Deducts balance, records `credit_ledger_entries` (`DEDUCT_REDEMPTION`), marks token `REDEEMED`, and creates `redemptions` record with immutable financial snapshots.
@@ -76,19 +80,30 @@ This document serves as the authoritative, centralized registry for all **functi
 8. **Member App Flip:** Mobile short-polling detects `REDEEMED` status within $\le 2$ seconds. Screen flips to green confirmation, then presents the prompt to rate the drink.
 
 ### 3.2 Drink Ratings & Diary Behavioral Rules
+* **Post-Redemption Prompt:** Immediately following a `SUCCESS` redemption result (§3.1 step 8), the member is presented with a skippable prompt to rate the drink just redeemed. The prompt is not shown for `EXPIRED` or `SUPERSEDED` outcomes.
 * A user can submit a rating of **1 to 5 stars** with an optional **$\le 140$-character note**.
 * **One rating per user per drink:** Subsequent submissions overwrite the existing rating.
 * **Verified Redemption Flag:** Ratings submitted post-redemption are flagged `verified_redemption = TRUE`. Unredeemed visitor reviews are flagged `verified_redemption = FALSE`.
-* **Cafe Aggregate Score:** A cafe’s star rating is the arithmetic mean of all ratings across all drinks it serves. If zero drinks have ratings, a "New" badge renders.
+* **Moderation:** An Administrator may hide a rating. A hidden rating is retained (never deleted) for audit purposes, including its `verified_redemption` flag and original content, but is excluded from the Cafe Aggregate Score below and from public-facing display.
+* **Cafe Aggregate Score:** A cafe’s star rating is the arithmetic mean of all **non-hidden** ratings across all drinks it serves. If zero drinks have (non-hidden) ratings, a "New" badge renders.
 * **Personal Drink Diary:** The member profile displays a personal log of all rated drinks, ordered strictly by `stars DESC, created_at DESC`.
 
 ### 3.3 Voiding & Settlement Accounting Workflow
-* **Voiding Pre-Statement:** If an admin voids a redemption before monthly statements are compiled, the redemption is marked `VOIDED`, credits are restored to the member, and accrued cafe payout liability is reduced.
-* **Voiding Post-Settlement (Batch Paid):** If a redemption is voided after bank wires have been transferred:
+
+Voiding a redemption has **two independent dimensions**, both of which must be evaluated on every void: (1) whether the associated **payout batch** has already been paid, which governs how the café-side payout liability is adjusted; and (2) whether the member's **original credit-granting billing period** is still open, which governs whether the member's credit is restored. A single void event evaluates both dimensions; the outcome of one does not determine the outcome of the other.
+
+**Dimension 1 — Payout Liability:**
+* **Pre-Settlement (Batch DRAFT/APPROVED, not yet PAID):** The redemption is marked `VOIDED` and its payout amount is removed from the batch's accrued liability.
+* **Post-Settlement (Batch already PAID):**
   * The historical paid statement remains untouched and immutable.
-  * A negative adjustment is inserted into `cafe_payout_adjustments`.
-  * The adjustment is automatically subtracted as a clawback line item from the cafe’s **next month's payout statement**.
-  * Credits are restored to the member as an off-cycle ledger entry (`RESTORE_VOID`).
+  * A negative adjustment is inserted into `cafe_payout_adjustments`, automatically subtracted as a clawback line item from the cafe's **next open/future payout batch**.
+  * The admin interface **must display an explicit warning** that a clawback will be applied before the void is confirmed.
+
+**Dimension 2 — Credit Restoration:**
+* **Original Billing Period Still Open:** The credit is restored to the member as an off-cycle ledger entry (`RESTORE_VOID`).
+* **Original Billing Period Already Expired:** The credit is **NOT** restored into the current or any later period. Only the Dimension 1 payout-liability adjustment applies; no `RESTORE_VOID` entry is written. This preserves the `Rollover = 0` invariant (`SC-BR-002`) — an expired credit must never be reintroduced into a later cycle.
+
+These dimensions combine independently. For example, a redemption voided after its payout batch is `PAID` but while the original credit period is still open triggers **both** a future clawback adjustment **and** a `RESTORE_VOID` credit restoration; a redemption voided long after both the batch was paid and the credit period ended triggers **only** the clawback, with no credit restoration.
 
 ---
 
@@ -108,7 +123,7 @@ This document serves as the authoritative, centralized registry for all **functi
 | **`SC-FR-010`** | Ratings | 1–5 star rating and optional $\le 140$-character note per drink. | Text sanitized against HTML/script injection. |
 | **`SC-FR-011`** | Ratings | One rating per user per drink (upsert semantics). | Database unique constraint `(user_id, drink_id)`. |
 | **`SC-FR-012`** | Diary | Personal Drink Diary screen sorted highest rated first. | Displays drink, cafe, stars, note, and date. |
-| **`SC-FR-013`** | Ratings | Cafe rating dynamically reflects average of its drinks' ratings. | Shows "New" badge when 0 drinks rated. |
+| **`SC-FR-013`** | Ratings | Cafe rating dynamically reflects average of its drinks' non-hidden ratings (§3.2). | Shows "New" badge when 0 (non-hidden) drinks rated. |
 | **`SC-FR-014`** | Billing | Stripe Native Payment Sheet embedded in mobile app ($24.99/mo). | Supports Apple Pay, Google Pay, and Cards. |
 | **`SC-FR-015`** | Ledger | Webhook grants 30 credits and activates Member status immediately. | Idempotent on Stripe invoice ID. |
 | **`SC-FR-016`** | Billing | Stripe Customer Portal link inside app for payment updates/cancel. | Web link generated via backend session API. |
@@ -133,10 +148,20 @@ This document serves as the authoritative, centralized registry for all **functi
 ### 5.1 User Account Lifecycle
 $$\text{REGISTERED} \xrightarrow{\text{Email Verified / OAuth}} \text{ACTIVE} \underset{\text{Admin Re-enable}}{\overset{\text{Admin Ban}}{\rightleftharpoons}} \text{SUSPENDED} \xrightarrow{\text{In-App Delete}} \text{DELETED}$$
 
+> `REGISTERED` here is the pre-verification account state — see the Terminology Note under §1 distinguishing it from the "Registered Visitor" role.
+
 ### 5.2 Subscription Billing Lifecycle
 $$\text{NONE} \xrightarrow{\text{First Payment Succeeded}} \text{ACTIVE} \underset{\text{Payment Recovered}}{\overset{\text{Payment Failed}}{\rightleftharpoons}} \text{PAST\_DUE} \xrightarrow{\text{Smart Retries Exhausted}} \text{UNPAID}$$
 $$\text{ACTIVE} \xrightarrow{\text{Cancel Requested}} \text{CANCELING (Grace Period)} \xrightarrow{\text{Period End}} \text{CANCELED}$$
+$$\text{CANCELING} \xrightarrow{\text{Resume Requested (before Period End)}} \text{ACTIVE}$$
 $$\text{ANY} \xrightarrow{\text{Immediate Cancel / Delete}} \text{CANCELED}$$
+
+**Redemption Entitlement by State:**
+* `ACTIVE`: Entitled.
+* `PAST_DUE`: Entitled. A member remains eligible to redeem while their subscription is in payment-provider retry/grace (Stripe Smart Retries in progress).
+* `CANCELING`: Entitled strictly while `NOW() <= current_period_end` — the member has already paid for the current cycle.
+* `UNPAID`, `CANCELED`, `NONE`: Not entitled — redemption attempts fail with `MEMBERSHIP_INACTIVE` (§3.1 step 6).
+* A member may resume a `CANCELING` subscription back to `ACTIVE` at any point before `current_period_end`, clearing the scheduled cancellation.
 
 ### 5.3 Redemption Token Lifecycle
 $$\text{PENDING (300s)} \xrightarrow{\text{Barista Scans (Valid)}} \text{REDEEMED}$$
@@ -145,6 +170,10 @@ $$\text{PENDING} \xrightarrow{\text{User Generates New Code}} \text{SUPERSEDED}$
 
 ### 5.4 Financial Payout Batch Lifecycle
 $$\text{DRAFT (Accruing)} \xrightarrow{\text{Admin Audits}} \text{APPROVED} \xrightarrow{\text{Bank Wire Recorded}} \text{PAID}$$
+
+This transition sequence is **strictly one-way** — there is no transition back from `APPROVED` to `DRAFT` or from `PAID` to `APPROVED`; corrections to a `PAID` batch use adjustments (§3.3), never edits or reversals.
+
+The `APPROVED → PAID` transition requires a non-null `wire_reference` and `payment_date` to be recorded; both are mandatory to complete the transition. The batch's paid amount remains **computed** (sum of batch items plus any applied adjustments) and is never independently re-entered.
 
 ---
 
@@ -169,7 +198,7 @@ When a redemption occurs, the following fields are **immutably snapshotted** dir
 * **Zero Plaintext Secrets:** Passwords and cafe PINs are hashed using **Argon2id**.
 * **Tokens Hashed in DB:** Refresh tokens, barista device sessions, and redemption QR codes are stored exclusively as **SHA-256 hashes**.
 * **Backup Code Salted Hash:** 6-digit backup codes are stored as `SHA-256(cafe_id || ":" || backup_code)`.
-* **PIN Brute-Force Defense:** More than 5 failed PIN attempts from an IP/cafe within 15 minutes triggers an automatic 30-minute lockout.
+* **PIN Brute-Force Defense:** Failed-attempt counting is keyed on the compound `(ip_address, cafe_id)` pair — not IP or café alone. More than 5 failed PIN attempts on a given `(ip_address, cafe_id)` pair within 15 minutes triggers an automatic 30-minute lockout on that pair. A successful authentication immediately resets the failed-attempt counter for that pair. Every attempt (success or failure) is written to an immutable, append-only attempt log; lockout status is derived from that log.
 * **Instant Session Revocation:** When an Admin resets a cafe's PIN, `cafes.pin_version` increments by 1. All active barista device tokens matching older versions are immediately rejected with HTTP 401.
 * **Stripe Webhook Defense:** Strict raw body HMAC-SHA256 signature verification (`stripe.webhooks.constructEvent`) with dedicated webhook secret and event deduplication table.
 
@@ -194,3 +223,15 @@ When a redemption occurs, the following fields are **immutably snapshotted** dir
 | **2026-09-08** | Identity Architecture | **APPROVED:** Split `users` and `user_identities`. | Enables multi-provider OAuth, Apple Relay, and credential linking without domain corruption. |
 | **2026-09-08** | Webhook Idempotency | **APPROVED:** Unique constraint on `credit_ledger_entries.idempotency_key`. | Prevents duplicate credit grants from webhook retries. |
 | **2026-09-08** | Post-Settlement Voids | **APPROVED:** Carryover clawback via `cafe_payout_adjustments`. | Protects audited historical statements while recovering funds on next month's invoice. |
+| **2026-09-09** | Subscription Grace-Period Entitlement (`PAST_DUE`) | **APPROVED:** Members remain redemption-entitled while `subscription.status = PAST_DUE`. Entitlement ends only when status reaches `UNPAID`. | Avoids penalizing members for transient payment-provider retry failures (Stripe Smart Retries); matches the existing `PAST_DUE ⇄ ACTIVE` recovery path in §5.2. |
+| **2026-09-09** | Subscription Grace-Period Entitlement (`CANCELING`) | **APPROVED:** Members remain redemption-entitled while `subscription.status = CANCELING`, strictly until `NOW() <= current_period_end`. | Consistent with the state's existing "(Grace Period)" label in §5.2; the member has already paid for the current cycle. |
+| **2026-09-09** | Membership Eligibility Check Timing | **APPROVED:** Token generation MAY perform a non-authoritative, fail-fast eligibility check. Scan-time verification (§3.1 step 6) remains the sole authoritative check. | Improves member UX without weakening the single source of truth for atomic redemption; closes the prior gap between §3.1's check list and its `MEMBERSHIP_INACTIVE` failure reason. |
+| **2026-09-09** | Barista PIN Lockout Key & Reset | **APPROVED:** Failed-attempt counting is keyed on the compound `(ip_address, cafe_id)` pair. `>5` failures within 15 minutes triggers a 30-minute lockout on that pair; a successful authentication resets the counter. The attempt log remains append-only/immutable. | Resolves the ambiguous "IP/cafe" wording in §7 with the narrowest reading, protecting both a single café and a single IP from unrelated lockouts. |
+| **2026-09-09** | Post-Settlement Void — Admin Presentation | **APPROVED:** The admin interface must warn before confirming a void whose payout batch is already `PAID`, since it triggers a future clawback rather than reducing the current batch. | Extends the 2026-09-08 Post-Settlement Voids decision with the admin-facing behavior needed for the void workflow to be usable and auditable. |
+| **2026-09-09** | Cross-Period Void Credit Restoration | **APPROVED:** If a redemption is voided after its original credit's billing period has already expired, the credit is **NOT** restored into any current or later period — only the café payout clawback applies. If the original period is still open, standard `RESTORE_VOID` restoration applies. **Supersedes** the previously unconditional restoration wording in §3.3. | Resolves a direct conflict between the prior unconditional "credits are restored... `RESTORE_VOID`" wording and the `Rollover = 0` invariant (`SC-BR-002`): restoring an expired-period credit later would grant a credit never earned in that period. |
+| **2026-09-09** | Rating Moderation & Aggregate Exclusion | **APPROVED:** Administrators may hide a rating. Hidden ratings are excluded from a café's Aggregate Score (§3.2) but are retained, not deleted, for audit purposes. | Introduces the moderation capability referenced by admin tooling; prevents moderated content from distorting public-facing aggregate scores while preserving the historical record. |
+| **2026-09-09** | Post-Redemption Rating Prompt | **APPROVED:** Immediately following a `SUCCESS` redemption result, the member is presented with a skippable prompt to rate the drink. Not shown for `EXPIRED`/`SUPERSEDED` outcomes. | Clarifies the trigger condition for the rating prompt described in §3.1 step 8. |
+| **2026-09-09** | Payout Statement CSV — Required Fields | **APPROVED:** CSV export (`SC-FR-028`) must include, per line: `redemption_id`, `redemption_date`, `drink_name_snapshot`, `credit_cost_snapshot`, `payout_rate_snapshot`, `cafe_payout_amount`; per batch: `cafe_name`, `period_label`, `total_amount`, `status`. `retail_price_snapshot` and `platform_margin_amount` are intentionally excluded as internal platform data. | Defines the minimum café-facing statement contract, distinct from the internal §6.1 snapshot field set. |
+| **2026-09-09** | Payout Batch Mark-Paid Required Fields | **APPROVED:** Transitioning a batch `APPROVED → PAID` requires a non-null `wire_reference` and `payment_date`. The paid amount remains computed, never re-entered. | Fulfills the "Bank Wire Recorded" transition condition in §5.4 with a concrete, auditable minimum field set. |
+| **2026-09-09** | Subscription Resume (`CANCELING → ACTIVE`) | **APPROVED:** A member may resume a `CANCELING` subscription back to `ACTIVE` at any point before `current_period_end`, clearing the scheduled cancellation. Added to the §5.2 state diagram. | Matches standard subscription-cancellation UX (resumable before period end); the state diagram previously omitted this transition. |
+| **2026-09-09** | Terminology Disambiguation — `REGISTERED` vs. "Registered Visitor" | **CLARIFIED:** `REGISTERED` (§5.1) is the account-verification lifecycle state. "Registered Visitor" (§1) is a distinct role: a verified (`ACTIVE`) account with `subscription.status = NONE`. The two must not be conflated in code, schema, or enum naming. | The identical word "Registered" described two unrelated concepts, risking schema/enum-naming confusion identified during the pre-schema consistency audit. |

@@ -4,10 +4,11 @@
   "version": "0.0.0",
   "main": "index.ts",
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
+    "start": "expo start --port 4000 --host localhost",
+    "android": "expo start --android --port 4000 --host localhost",
+    "ios": "expo start --ios --port 4000 --host localhost",
+    "web": "expo start --web --port 4000 --host localhost",
+    "build": "expo export --platform web",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
@@ -15,7 +16,9 @@
     "expo": "~57.0.21",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
-    "react-native": "0.86.3"
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-web": "^0.21.2"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",

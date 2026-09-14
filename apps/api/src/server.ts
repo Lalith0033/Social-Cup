@@ -1,7 +1,8 @@
 import app from './app.js';
 
-const port = process.env.PORT || 3000;
+const port = Number(process.env.PORT || 3000);
+const host = process.env.HOST || '0.0.0.0';
 
-app.listen(port, () => {
-  console.log(`API listening on port ${port}`);
+app.listen(port, host, () => {
+  console.log(`API listening at http://${host}:${port}`);
 });
