@@ -58,8 +58,8 @@ const styles = StyleSheet.create({
   ghost: { backgroundColor: 'transparent' },
   danger: { backgroundColor: colors.danger },
   disabled: { opacity: 0.5 },
-  pressed: { opacity: 0.85 },
-  label: { ...type.bodyStrong, color: colors.textOnBrand },
+  pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
+  label: { ...type.bodyStrong, color: colors.textOnBrand, flexShrink: 1, textAlign: 'center' },
   secondaryLabel: { color: colors.textPrimary },
   ghostLabel: { color: colors.brand },
 });

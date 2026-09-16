@@ -10,10 +10,15 @@ export const colors = {
   textPrimary: '#2B1B12',
   textSecondary: '#7A6355',
   textOnBrand: '#FFF8F0',
-  brand: '#6F4E37',
-  brandDark: '#4B2E1E',
+  brand: '#2F8F7A',
+  brandDark: '#1F6357',
+  brandBg: '#E3F2EE',
   accent: '#C97B3D',
   accentBg: '#F6E3D0',
+  accentDark: '#8A4E1F',
+  imageOverlay: 'rgba(32, 28, 26, 0.4)',
+  accentOnImage: '#E8B487',
+  textOnImageMuted: '#F6DED0',
   success: '#2F7D4F',
   successBg: '#E4F3E9',
   danger: '#B3261E',
@@ -54,7 +59,7 @@ export const type = {
 
 export const shadow = {
   card: {
-    shadowColor: '#3A2417',
+    shadowColor: '#241E1A',
     shadowOpacity: 0.08,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },

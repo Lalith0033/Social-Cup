@@ -1,7 +1,9 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { CATEGORY_COLOR, CATEGORY_EMOJI, CATEGORY_LABELS } from '../categoryMeta';
 import { CafePhoto } from '../components/CafePhoto';
-import { Badge, Card, StarRating } from '../components/Primitives';
+import { DrinkPhoto } from '../components/DrinkPhoto';
+import { Badge, Card, EmptyState, StarRating } from '../components/Primitives';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { cafeById, drinksForCafe, neighbourhoodName, ratingsForCafe } from '../mockData';
 import { useAppActions } from '../state/AppState';
@@ -18,22 +20,14 @@ export function CafeDetailScreen({ cafeId }: { cafeId: string }) {
   return (
     <ScreenContainer onBack={pop} title={cafe.name}>
       <CafePhoto color={cafe.photoColor} emoji={cafe.photoEmoji} height={160} radius={radii.lg} />
-      <View style={styles.photoStrip}>
-        <CafePhoto color={cafe.photoColor} emoji="📷" height={56} width={56} radius={radii.sm} />
-        <View style={{ width: spacing.sm }} />
-        <CafePhoto color={cafe.photoColor} emoji="🪑" height={56} width={56} radius={radii.sm} />
-        <View style={{ width: spacing.sm }} />
-        <CafePhoto color={cafe.photoColor} emoji="🎨" height={56} width={56} radius={radii.sm} />
-      </View>
 
       <View style={styles.headerRow}>
-        <View style={{ flex: 1 }}>
+        <View style={styles.headerInfo}>
           <Text style={styles.name}>{cafe.name}</Text>
           <Text style={styles.address}>{cafe.address}</Text>
         </View>
         <Badge label="Open now" tone="success" />
       </View>
-
       <View style={styles.ratingRow}>
         <StarRating value={cafe.ratingAvg} size={18} />
         <Text style={styles.ratingText}>
@@ -49,12 +43,21 @@ export function CafeDetailScreen({ cafeId }: { cafeId: string }) {
         ))}
       </View>
 
-      <Text style={styles.sectionTitle}>Menu</Text>
+      <Text style={styles.sectionTitle}>Social Cup eligible drinks</Text>
       {menu.map((drink) => (
-        <Pressable key={drink.id} onPress={() => push({ name: 'RedeemConfirm', cafeId: cafe.id, drinkId: drink.id })}>
+        <Pressable key={drink.id} onPress={() => push({ name: 'DrinkDetail', cafeId: cafe.id, drinkId: drink.id })}>
           <Card style={styles.drinkCard}>
-            <View style={{ flex: 1 }}>
+            <DrinkPhoto
+              imageUri={drink.imageUri}
+              color={CATEGORY_COLOR[drink.category]}
+              emoji={CATEGORY_EMOJI[drink.category]}
+              height={56}
+              width={56}
+              radius={radii.sm}
+            />
+            <View style={styles.drinkInfo}>
               <Text style={styles.drinkName}>{drink.name}</Text>
+              <Text style={styles.drinkCategory}>{CATEGORY_LABELS[drink.category]}</Text>
               <Text style={styles.drinkDescription}>{drink.description}</Text>
               <Text style={styles.drinkRetail}>${(drink.retailPriceCents / 100).toFixed(2)} retail</Text>
             </View>
@@ -67,7 +70,7 @@ export function CafeDetailScreen({ cafeId }: { cafeId: string }) {
       ))}
 
       <Text style={styles.sectionTitle}>Recent ratings</Text>
-      {cafeRatings.length === 0 && <Text style={styles.emptyRatings}>No ratings yet.</Text>}
+      {cafeRatings.length === 0 && <EmptyState emoji="⭐" title="No ratings yet" subtitle="Be the first to rate a drink here." />}
       {cafeRatings.map((rating) => (
         <Card key={rating.id} style={styles.ratingCard}>
           <View style={styles.ratingCardHeader}>
@@ -85,26 +88,27 @@ export function CafeDetailScreen({ cafeId }: { cafeId: string }) {
 }
 
 const styles = StyleSheet.create({
-  photoStrip: { flexDirection: 'row', marginTop: spacing.sm },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: spacing.lg },
+  headerInfo: { flex: 1, minWidth: 0, marginRight: spacing.sm },
   name: { ...type.title, color: colors.textPrimary },
   address: { ...type.small, color: colors.textSecondary, marginTop: 2 },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm },
-  ratingText: { ...type.small, color: colors.textSecondary, marginLeft: spacing.sm },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginTop: spacing.sm },
+  ratingText: { ...type.small, color: colors.textSecondary, flexShrink: 1, marginLeft: spacing.sm },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing.md },
   tag: { backgroundColor: colors.surfaceAlt, borderRadius: radii.pill, paddingVertical: 4, paddingHorizontal: spacing.md, marginRight: spacing.sm, marginBottom: spacing.sm },
   tagText: { ...type.small, color: colors.textSecondary },
   sectionTitle: { ...type.subtitle, color: colors.textPrimary, marginTop: spacing.xl, marginBottom: spacing.md },
   drinkCard: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
+  drinkInfo: { flex: 1, minWidth: 0, marginLeft: spacing.md },
   drinkName: { ...type.bodyStrong, color: colors.textPrimary },
+  drinkCategory: { ...type.caption, color: colors.brand, marginTop: 2, textTransform: 'none' },
   drinkDescription: { ...type.small, color: colors.textSecondary, marginTop: 2 },
   drinkRetail: { ...type.small, color: colors.textSecondary, marginTop: 4 },
   creditBadge: { alignItems: 'center', backgroundColor: colors.accentBg, borderRadius: radii.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, marginLeft: spacing.md },
-  creditBadgeValue: { ...type.title, fontSize: 20, color: colors.brandDark },
-  creditBadgeLabel: { ...type.caption, color: colors.brandDark },
-  emptyRatings: { ...type.body, color: colors.textSecondary },
+  creditBadgeValue: { ...type.title, fontSize: 20, color: colors.accentDark },
+  creditBadgeLabel: { ...type.caption, color: colors.accentDark },
   ratingCard: { marginBottom: spacing.md },
-  ratingCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  ratingUser: { ...type.bodyStrong, color: colors.textPrimary },
+  ratingCardHeader: { flexDirection: 'row', alignItems: 'center' },
+  ratingUser: { ...type.bodyStrong, color: colors.textPrimary, flex: 1, minWidth: 0, marginRight: spacing.sm },
   ratingNote: { ...type.body, color: colors.textSecondary, marginTop: spacing.xs, marginBottom: spacing.xs, fontStyle: 'italic' },
 });

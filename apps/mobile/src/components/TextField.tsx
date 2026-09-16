@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors, radii, spacing, type } from '../theme';
 
@@ -10,6 +10,7 @@ type Props = {
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'email-address' | 'number-pad';
   autoCapitalize?: 'none' | 'words' | 'sentences';
+  inputStyle?: object;
 };
 
 export function TextField({
@@ -20,7 +21,9 @@ export function TextField({
   secureTextEntry,
   keyboardType = 'default',
   autoCapitalize = 'sentences',
+  inputStyle,
 }: Props) {
+  const [focused, setFocused] = useState(false);
   return (
     <View style={styles.wrap}>
       <Text style={styles.label}>{label}</Text>
@@ -32,7 +35,9 @@ export function TextField({
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize}
-        style={styles.input}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={[styles.input, focused && styles.inputFocused, inputStyle]}
       />
     </View>
   );
@@ -51,4 +56,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.textPrimary,
   },
+  inputFocused: { borderColor: colors.brand },
 });

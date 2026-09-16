@@ -5,9 +5,9 @@ import type { TabKey } from './types';
 
 const TABS: { key: TabKey; label: string; emoji: string }[] = [
   { key: 'home', label: 'Home', emoji: '🏠' },
+  { key: 'feed', label: 'Feed', emoji: '📣' },
   { key: 'discover', label: 'Discover', emoji: '🔍' },
-  { key: 'history', label: 'History', emoji: '🧾' },
-  { key: 'membership', label: 'Membership', emoji: '💳' },
+  { key: 'map', label: 'Map', emoji: '🗺️' },
   { key: 'profile', label: 'Profile', emoji: '👤' },
 ];
 
