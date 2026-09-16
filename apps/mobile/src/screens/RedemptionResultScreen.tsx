@@ -1,16 +1,37 @@
-import React from 'react';
-import { SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../components/Button';
 import { useAppActions, useAppState } from '../state/AppState';
 import { colors, radii, spacing, type } from '../theme';
 
+function OutcomeIcon({ emoji }: { emoji: string }) {
+  const scale = useRef(new Animated.Value(0.6)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 5, tension: 60 }),
+      Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+    ]).start();
+  }, [scale, opacity]);
+
+  return (
+    <Animated.View style={[styles.iconBadge, { opacity, transform: [{ scale }] }]}>
+      <Text style={styles.bigEmoji}>{emoji}</Text>
+    </Animated.View>
+  );
+}
+
 export function RedemptionResultScreen() {
   const { state } = useAppState();
-  const { setTab } = useAppActions();
+  const { setTab, popToRoot, push } = useAppActions();
   const outcome = state.lastOutcome;
 
   const done = () => setTab('home');
-  const viewHistory = () => setTab('history');
+  const viewHistory = () => {
+    popToRoot();
+    push({ name: 'History' });
+  };
 
   if (!outcome || outcome.kind === 'success') {
     const record = outcome && outcome.kind === 'success' ? outcome.record : undefined;
@@ -18,7 +39,7 @@ export function RedemptionResultScreen() {
       <SafeAreaView style={[styles.safe, styles.successBg]}>
         <StatusBar barStyle="light-content" />
         <View style={styles.center}>
-          <Text style={styles.bigEmoji}>✅</Text>
+          <OutcomeIcon emoji="✅" />
           <Text style={styles.resultTitle}>Redeemed!</Text>
           {record && (
             <>
@@ -50,7 +71,7 @@ export function RedemptionResultScreen() {
     <SafeAreaView style={[styles.safe, styles.dangerBg]}>
       <StatusBar barStyle="light-content" />
       <View style={styles.center}>
-        <Text style={styles.bigEmoji}>{isExpired ? '⏱️' : '⚠️'}</Text>
+        <OutcomeIcon emoji={isExpired ? '⏱️' : '⚠️'} />
         <Text style={styles.resultTitle}>{title}</Text>
         <Text style={styles.resultMessage}>{message}</Text>
       </View>
@@ -66,7 +87,16 @@ const styles = StyleSheet.create({
   successBg: { backgroundColor: colors.success },
   dangerBg: { backgroundColor: colors.danger },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
-  bigEmoji: { fontSize: 64, marginBottom: spacing.lg },
+  iconBadge: {
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
+  bigEmoji: { fontSize: 56 },
   resultTitle: { ...type.display, color: colors.white, marginBottom: spacing.sm },
   resultSubtitle: { ...type.title, color: colors.white },
   resultMeta: { ...type.body, color: colors.white, opacity: 0.85, marginTop: 2 },

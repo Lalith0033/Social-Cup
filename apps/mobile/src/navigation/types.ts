@@ -5,10 +5,13 @@
 
 export type AuthPhase = 'landing' | 'auth' | 'onboarding' | 'app';
 
-export type TabKey = 'home' | 'discover' | 'history' | 'membership' | 'profile';
+export type TabKey = 'home' | 'feed' | 'discover' | 'map' | 'profile';
 
 export type StackScreen =
   | { name: 'CafeDetail'; cafeId: string }
+  | { name: 'DrinkDetail'; drinkId: string; cafeId: string }
   | { name: 'RedeemConfirm'; cafeId: string; drinkId: string }
   | { name: 'RedemptionToken' }
-  | { name: 'RedemptionResult' };
+  | { name: 'RedemptionResult' }
+  | { name: 'History' }
+  | { name: 'Membership' };

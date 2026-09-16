@@ -1,0 +1,83 @@
+import type { DrinkCategory } from './types';
+
+// Single source of truth for how a DrinkCategory is displayed, shared by
+// Home, Discover, DrinkCard, DrinkDetail, and the landing page's category grid.
+export const CATEGORY_ORDER: DrinkCategory[] = [
+  'coffee',
+  'espresso',
+  'latte',
+  'cold_brew',
+  'matcha',
+  'hojicha',
+  'specialty_tea',
+  'chai',
+  'milk_tea',
+  'boba',
+  'fruit_tea',
+  'smoothie',
+  'juice',
+  'lemonade',
+  'refresher',
+  'hot_chocolate',
+  'seasonal',
+];
+
+export const CATEGORY_LABELS: Record<DrinkCategory, string> = {
+  coffee: 'Coffee',
+  espresso: 'Espresso',
+  latte: 'Latte',
+  cold_brew: 'Cold Brew',
+  matcha: 'Matcha',
+  hojicha: 'Hojicha',
+  specialty_tea: 'Specialty Tea',
+  chai: 'Chai',
+  milk_tea: 'Milk Tea',
+  boba: 'Boba',
+  fruit_tea: 'Fruit Tea',
+  smoothie: 'Smoothie',
+  juice: 'Juice',
+  lemonade: 'Lemonade',
+  refresher: 'Refresher',
+  hot_chocolate: 'Hot Chocolate',
+  seasonal: 'Seasonal',
+};
+
+export const CATEGORY_EMOJI: Record<DrinkCategory, string> = {
+  coffee: '☕',
+  espresso: '☕',
+  latte: '🥛',
+  cold_brew: '🧊',
+  matcha: '🍵',
+  hojicha: '🍵',
+  specialty_tea: '🫖',
+  chai: '🫖',
+  milk_tea: '🧋',
+  boba: '🧋',
+  fruit_tea: '🍓',
+  smoothie: '🥤',
+  juice: '🧃',
+  lemonade: '🍋',
+  refresher: '🥤',
+  hot_chocolate: '🍫',
+  seasonal: '🍂',
+};
+
+export const CATEGORY_COLOR: Record<DrinkCategory, string> = {
+  coffee: '#6F4E37',
+  espresso: '#4B2E1E',
+  latte: '#C9A27A',
+  cold_brew: '#3A2C22',
+  matcha: '#7C9A5B',
+  hojicha: '#A9702F',
+  specialty_tea: '#8C6E4A',
+  chai: '#B5652F',
+  milk_tea: '#D8B497',
+  boba: '#8B6BA8',
+  fruit_tea: '#D6647A',
+  smoothie: '#E07A8B',
+  juice: '#E0A526',
+  lemonade: '#E8C24A',
+  refresher: '#4FA8A0',
+  hot_chocolate: '#5A3A2E',
+  seasonal: '#B4622B',
+};

@@ -25,7 +25,7 @@ export function RedemptionTokenScreen() {
     <ScreenContainer onBack={cancelToken} title="Show this to your barista">
       <View style={styles.center}>
         <FakeQrCode seed={token.id} />
-        <Countdown expiresAt={token.expiresAt} onExpire={tokenExpired} />
+        <Countdown expiresAt={token.expiresAt} createdAt={token.createdAt} onExpire={tokenExpired} />
       </View>
 
       <Card style={styles.card}>
@@ -65,10 +65,10 @@ const styles = StyleSheet.create({
   cafeName: { ...type.small, color: colors.textSecondary },
   drinkName: { ...type.subtitle, color: colors.textPrimary, marginTop: 2 },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.md },
-  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm },
-  label: { ...type.body, color: colors.textSecondary },
-  value: { ...type.bodyStrong, color: colors.brand },
-  code: { ...type.bodyStrong, color: colors.textPrimary, letterSpacing: 2 },
+  row: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.sm },
+  label: { ...type.body, color: colors.textSecondary, flex: 1, minWidth: 0, marginRight: spacing.md },
+  value: { ...type.bodyStrong, color: colors.brand, flexShrink: 1, textAlign: 'right' },
+  code: { ...type.bodyStrong, color: colors.textPrimary, letterSpacing: 2, flexShrink: 1, textAlign: 'right' },
   hint: { ...type.small, color: colors.textSecondary, textAlign: 'center', lineHeight: 18, marginBottom: spacing.xl },
   demoBox: { borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed', borderRadius: radii.lg, padding: spacing.lg },
   demoLabel: { ...type.caption, color: colors.textSecondary, marginBottom: spacing.md, textAlign: 'center' },

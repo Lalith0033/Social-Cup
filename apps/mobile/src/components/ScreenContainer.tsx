@@ -18,13 +18,17 @@ export function ScreenContainer({ title, onBack, scroll = true, children, rightS
       {(title || onBack) && (
         <View style={styles.header}>
           {onBack ? (
-            <Pressable onPress={onBack} hitSlop={12} style={styles.backButton}>
+            <Pressable
+              onPress={onBack}
+              hitSlop={12}
+              style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
+            >
               <Text style={styles.backText}>‹ Back</Text>
             </Pressable>
           ) : (
             <View style={styles.backButton} />
           )}
-          {title ? <Text style={styles.headerTitle}>{title}</Text> : <View />}
+          {title ? <Text numberOfLines={2} style={styles.headerTitle}>{title}</Text> : <View />}
           <View style={styles.rightSlot}>{rightSlot}</View>
         </View>
       )}
@@ -44,15 +48,15 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
   },
-  backButton: { minWidth: 64 },
+  backButton: { width: 72, flexShrink: 0 },
+  backButtonPressed: { opacity: 0.6 },
   backText: { ...type.bodyStrong, color: colors.brand },
-  headerTitle: { ...type.subtitle, color: colors.textPrimary },
-  rightSlot: { minWidth: 64, alignItems: 'flex-end' },
+  headerTitle: { ...type.subtitle, color: colors.textPrimary, flex: 1, minWidth: 0, textAlign: 'center' },
+  rightSlot: { width: 72, flexShrink: 0, alignItems: 'flex-end' },
   body: { flex: 1 },
   scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl },
 });

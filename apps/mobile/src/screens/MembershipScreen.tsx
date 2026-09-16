@@ -1,24 +1,21 @@
 import React from 'react';
-import { SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Button } from '../components/Button';
-import { Badge, Card } from '../components/Primitives';
+import { Badge, Card, ProgressBar } from '../components/Primitives';
+import { ScreenContainer } from '../components/ScreenContainer';
 import { useAppActions, useAppState } from '../state/AppState';
 import { colors, radii, spacing, type } from '../theme';
 
 export function MembershipScreen() {
   const { state } = useAppState();
-  const { setCancelAtPeriodEnd } = useAppActions();
+  const { pop, setCancelAtPeriodEnd } = useAppActions();
   const { subscription, balance } = state;
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="dark-content" />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Membership</Text>
-
+    <ScreenContainer onBack={pop} title="Membership">
         <Card style={styles.planCard}>
           <View style={styles.planHeader}>
-            <View>
+            <View style={styles.planInfo}>
               <Text style={styles.planName}>{subscription.planName}</Text>
               <Text style={styles.planPrice}>{subscription.priceLabel}</Text>
             </View>
@@ -30,8 +27,14 @@ export function MembershipScreen() {
 
           <View style={styles.divider} />
 
-          <Row label="Credits per cycle" value={`${subscription.creditsPerPeriod} credits`} />
-          <Row label="Credits remaining" value={`${balance} credits`} />
+          <View style={styles.creditsBlock}>
+            <View style={styles.creditsHeader}>
+              <Text style={styles.rowLabel}>Credits this cycle</Text>
+              <Text style={styles.creditsValue}>{balance} of {subscription.creditsPerPeriod}</Text>
+            </View>
+            <ProgressBar value={balance} max={subscription.creditsPerPeriod} />
+          </View>
+
           <Row
             label={subscription.cancelAtPeriodEnd ? 'Access ends' : 'Renews on'}
             value={subscription.currentPeriodEnd}
@@ -67,8 +70,7 @@ export function MembershipScreen() {
         </Text>
 
         <View style={{ height: spacing.xxl }} />
-      </ScrollView>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
@@ -82,17 +84,18 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
-  title: { ...type.title, color: colors.textPrimary, marginBottom: spacing.lg },
-  planCard: { marginBottom: spacing.lg },
-  planHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  planCard: { marginTop: spacing.md, marginBottom: spacing.lg },
+  planHeader: { flexDirection: 'row', alignItems: 'flex-start' },
+  planInfo: { flex: 1, minWidth: 0, marginRight: spacing.sm },
   planName: { ...type.subtitle, color: colors.textPrimary },
   planPrice: { ...type.body, color: colors.textSecondary, marginTop: 2 },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.md },
-  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm },
-  rowLabel: { ...type.body, color: colors.textSecondary },
-  rowValue: { ...type.bodyStrong, color: colors.textPrimary },
+  creditsBlock: { marginBottom: spacing.md },
+  creditsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: spacing.sm },
+  creditsValue: { ...type.bodyStrong, color: colors.textPrimary },
+  row: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.sm },
+  rowLabel: { ...type.body, color: colors.textSecondary, flex: 1, minWidth: 0, marginRight: spacing.md },
+  rowValue: { ...type.bodyStrong, color: colors.textPrimary, flexShrink: 1, textAlign: 'right' },
   noticeCard: { backgroundColor: colors.warningBg, borderRadius: radii.md, padding: spacing.md, marginBottom: spacing.lg },
   noticeText: { ...type.small, color: colors.warning, lineHeight: 18 },
   sectionTitle: { ...type.subtitle, color: colors.textPrimary, marginBottom: spacing.md },

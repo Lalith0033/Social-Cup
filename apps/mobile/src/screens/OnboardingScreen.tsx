@@ -3,15 +3,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../components/Button';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { neighbourhoods } from '../mockData';
+import { PREFERENCE_META, PREFERENCE_ORDER } from '../preferenceMeta';
 import { useAppActions } from '../state/AppState';
 import { colors, radii, spacing, type } from '../theme';
-
-const PREFERENCE_OPTIONS = [
-  { id: 'espresso', label: 'Espresso', emoji: '☕' },
-  { id: 'latte', label: 'Latte', emoji: '🥛' },
-  { id: 'cold-brew', label: 'Cold brew', emoji: '🧊' },
-  { id: 'matcha', label: 'Matcha', emoji: '🍵' },
-];
 
 export function OnboardingScreen() {
   const { completeOnboarding } = useAppActions();
@@ -24,6 +18,7 @@ export function OnboardingScreen() {
 
   return (
     <ScreenContainer title="Set up your profile">
+      <Text style={styles.stepLabel}>Step 1 of 2</Text>
       <Text style={styles.sectionLabel}>Which Dallas neighbourhood is home base?</Text>
       <View style={styles.chipWrap}>
         {neighbourhoods.map((n) => (
@@ -37,14 +32,16 @@ export function OnboardingScreen() {
         ))}
       </View>
 
-      <Text style={[styles.sectionLabel, { marginTop: spacing.xl }]}>What do you usually order?</Text>
+      <Text style={[styles.stepLabel, { marginTop: spacing.xl }]}>Step 2 of 2</Text>
+      <Text style={styles.sectionLabel}>What do you usually order?</Text>
       <View style={styles.chipWrap}>
-        {PREFERENCE_OPTIONS.map((p) => {
-          const active = preferences.includes(p.id);
+        {PREFERENCE_ORDER.map((id) => {
+          const meta = PREFERENCE_META[id];
+          const active = preferences.includes(id);
           return (
-            <Pressable key={p.id} onPress={() => togglePreference(p.id)} style={[styles.chip, active && styles.chipActive]}>
+            <Pressable key={id} onPress={() => togglePreference(id)} style={[styles.chip, active && styles.chipActive]}>
               <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                {p.emoji} {p.label}
+                {meta.emoji} {meta.label}
               </Text>
             </Pressable>
           );
@@ -59,6 +56,7 @@ export function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
+  stepLabel: { ...type.caption, color: colors.brand, marginBottom: spacing.xs, textTransform: 'uppercase' },
   sectionLabel: { ...type.bodyStrong, color: colors.textPrimary, marginBottom: spacing.md },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap' },
   chip: {

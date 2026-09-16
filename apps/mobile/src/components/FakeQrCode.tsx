@@ -19,6 +19,22 @@ function seededGrid(seed: string, size: number): boolean[] {
   return cells;
 }
 
+// Real QR codes anchor three corners with a nested square "finder pattern" —
+// drawing the same motif (even on fake data) is what makes this read as
+// QR-shaped at a glance rather than a random pixel grid.
+function FinderPattern({ pixel, style }: { pixel: number; style: object }) {
+  const outer = pixel * 3;
+  const mid = pixel * 2;
+  const inner = pixel;
+  return (
+    <View style={[{ position: 'absolute', width: outer, height: outer, backgroundColor: colors.textPrimary, alignItems: 'center', justifyContent: 'center' }, style]}>
+      <View style={{ width: mid, height: mid, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: inner, height: inner, backgroundColor: colors.textPrimary }} />
+      </View>
+    </View>
+  );
+}
+
 export function FakeQrCode({ seed, size = 9, pixel = 20 }: { seed: string; size?: number; pixel?: number }) {
   const cells = useMemo(() => seededGrid(seed, size), [seed, size]);
   const dimension = size * pixel;
@@ -31,10 +47,13 @@ export function FakeQrCode({ seed, size = 9, pixel = 20 }: { seed: string; size?
             style={{
               width: pixel,
               height: pixel,
-              backgroundColor: filled ? colors.brandDark : 'transparent',
+              backgroundColor: filled ? colors.textPrimary : 'transparent',
             }}
           />
         ))}
+        <FinderPattern pixel={pixel} style={{ top: 0, left: 0 }} />
+        <FinderPattern pixel={pixel} style={{ top: 0, right: 0 }} />
+        <FinderPattern pixel={pixel} style={{ bottom: 0, left: 0 }} />
       </View>
     </View>
   );

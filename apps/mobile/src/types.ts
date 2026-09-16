@@ -7,14 +7,35 @@ export type Neighbourhood = {
   name: string;
 };
 
+export type DrinkCategory =
+  | 'coffee'
+  | 'espresso'
+  | 'latte'
+  | 'cold_brew'
+  | 'matcha'
+  | 'hojicha'
+  | 'milk_tea'
+  | 'boba'
+  | 'fruit_tea'
+  | 'specialty_tea'
+  | 'chai'
+  | 'smoothie'
+  | 'juice'
+  | 'lemonade'
+  | 'refresher'
+  | 'hot_chocolate'
+  | 'seasonal';
+
 export type Drink = {
   id: string;
   cafeId: string;
   name: string;
   description: string;
+  category: DrinkCategory;
   retailPriceCents: number;
   creditCost: number;
   active: boolean;
+  imageUri?: string;
 };
 
 export type Cafe = {
@@ -90,3 +111,17 @@ export type RedemptionOutcome =
   | { kind: 'success'; record: RedemptionRecord }
   | { kind: 'expired' }
   | { kind: 'superseded' };
+
+// Mock-only social layer: a small curated set of feed posts, not backed by
+// any real posting/likes/comments infrastructure.
+export type FeedPost = {
+  id: string;
+  userName: string;
+  userInitials: string;
+  distanceLabel: string;
+  drinkId: string;
+  cafeId: string;
+  caption?: string;
+  likeCount: number;
+  commentCount: number;
+};

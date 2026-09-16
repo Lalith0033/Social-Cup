@@ -50,6 +50,7 @@ export function AuthScreen() {
             placeholder="At least 4 characters"
             secureTextEntry={!showPassword}
             autoCapitalize="none"
+            inputStyle={styles.passwordInput}
           />
           <Pressable onPress={() => setShowPassword((value) => !value)} style={styles.showPassword}>
             <Text style={styles.showPasswordText}>{showPassword ? 'Hide' : 'Show'}</Text>
@@ -126,12 +127,12 @@ const styles = StyleSheet.create({
   wideShell: { flex: 1, flexDirection: 'row', backgroundColor: colors.bg },
   imagePanel: { flex: 1, minWidth: 340, justifyContent: 'flex-end', padding: 48 },
   imagePanelImage: { resizeMode: 'cover' },
-  imageOverlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(55, 30, 18, 0.58)' },
+  imageOverlay: { ...StyleSheet.absoluteFill, backgroundColor: colors.imageOverlay },
   imageContent: { position: 'relative', maxWidth: 420 },
   imageMark: { fontSize: 38, marginBottom: spacing.sm },
   imageBrand: { ...type.subtitle, color: colors.textOnBrand, letterSpacing: 0.8 },
   imageTitle: { fontSize: 44, lineHeight: 48, fontWeight: '700', color: colors.textOnBrand, marginTop: spacing.xxl },
-  imageQuote: { ...type.body, color: '#F4DCC9', marginTop: spacing.xl, lineHeight: 23 },
+  imageQuote: { ...type.body, color: colors.textOnImageMuted, marginTop: spacing.xl, lineHeight: 23 },
   formPanel: { flex: 0.82, justifyContent: 'center', padding: 48, backgroundColor: colors.bg },
   formInner: { width: '100%', maxWidth: 460, alignSelf: 'center' },
   backLink: { position: 'absolute', top: 32, left: 48 },
@@ -152,18 +153,19 @@ const styles = StyleSheet.create({
   tabLabelActive: { color: colors.brand },
   form: { marginBottom: spacing.sm },
   passwordWrap: { position: 'relative' },
+  passwordInput: { paddingRight: 56 },
   showPassword: { position: 'absolute', right: spacing.md, bottom: 13, padding: 4 },
   showPasswordText: { ...type.small, color: colors.brand, fontWeight: '600' },
-  formMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: -spacing.sm, marginBottom: spacing.sm },
+  formMeta: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm, marginTop: -spacing.sm, marginBottom: spacing.sm },
   remember: { flexDirection: 'row', alignItems: 'center' },
   checkbox: { width: 18, height: 18, borderRadius: 5, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', marginRight: spacing.sm },
   checkboxSelected: { backgroundColor: colors.brand, borderColor: colors.brand },
   check: { color: colors.white, fontSize: 12, fontWeight: '700' },
   metaText: { ...type.small, color: colors.textSecondary },
-  forgot: { ...type.small, color: colors.brand },
+  forgot: { ...type.small, color: colors.brand, marginLeft: 'auto' },
   providerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: spacing.xl },
   divider: { flex: 1, height: 1, backgroundColor: colors.border },
   or: { ...type.small, color: colors.textSecondary, marginHorizontal: spacing.md },
-  providerButtons: { flexDirection: 'row' },
+  providerButtons: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   mockNote: { ...type.small, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.xl },
 });
