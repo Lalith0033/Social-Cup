@@ -1,22 +1,33 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Animated, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../components/Button';
 import { useAppActions, useAppState } from '../state/AppState';
 import { colors, radii, spacing, type } from '../theme';
 
 function OutcomeIcon({ emoji }: { emoji: string }) {
-  const scale = useRef(new Animated.Value(0.6)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
+  const [scale] = useState(() => new Animated.Value(0.6));
+  const [opacity] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 5, tension: 60 }),
-      Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.spring(scale, {
+        toValue: 1,
+        useNativeDriver: true,
+        friction: 5,
+        tension: 60,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
     ]).start();
   }, [scale, opacity]);
 
   return (
-    <Animated.View style={[styles.iconBadge, { opacity, transform: [{ scale }] }]}>
+    <Animated.View
+      style={[styles.iconBadge, { opacity, transform: [{ scale }] }]}
+    >
       <Text style={styles.bigEmoji}>{emoji}</Text>
     </Animated.View>
   );
