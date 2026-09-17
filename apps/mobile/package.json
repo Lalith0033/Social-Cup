@@ -7,7 +7,8 @@
     "start": "expo start --port 4000 --host localhost",
     "android": "expo start --android --port 4000 --host localhost",
     "ios": "expo start --ios --port 4000 --host localhost",
-    "web": "expo start --web --port 4000 --host localhost",
+    "web": "expo start --web --port 4000",
+    "dev": "expo start --web --port 4000",
     "build": "expo export --platform web",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
