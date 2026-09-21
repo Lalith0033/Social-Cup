@@ -1,4 +1,5 @@
 import { Sidebar } from './components/Sidebar';
+import { PageTransition } from './components/PageTransition';
 import { AuditScreen } from './screens/AuditScreen';
 import { CafesScreen } from './screens/CafesScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
@@ -17,7 +18,11 @@ function Shell() {
   return (
     <div className="app-shell">
       <Sidebar active={state.section} onSelect={setSection} />
-      <main className="main-content">{renderSection(state.section)}</main>
+      <main className="main-content">
+        <PageTransition key={state.section} routeKey={state.section}>
+          {renderSection(state.section)}
+        </PageTransition>
+      </main>
     </div>
   );
 }
