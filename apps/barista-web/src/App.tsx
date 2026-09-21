@@ -1,3 +1,4 @@
+import { PageTransition } from './components/PageTransition';
 import { PinEntryScreen } from './screens/PinEntryScreen';
 import { ResultScreen } from './screens/ResultScreen';
 import { ScannerScreen } from './screens/ScannerScreen';
@@ -7,10 +8,17 @@ import { BaristaStateProvider, useBaristaState } from './state/BaristaState';
 function Screens() {
   const { state } = useBaristaState();
 
-  if (!state.trustedCafeId || state.view === 'pin') return <PinEntryScreen />;
-  if (state.view === 'result') return <ResultScreen />;
-  if (state.view === 'history') return <TodayHistoryScreen />;
-  return <ScannerScreen />;
+  let screen;
+  if (!state.trustedCafeId || state.view === 'pin') screen = <PinEntryScreen />;
+  else if (state.view === 'result') screen = <ResultScreen />;
+  else if (state.view === 'history') screen = <TodayHistoryScreen />;
+  else screen = <ScannerScreen />;
+
+  return (
+    <PageTransition key={state.view} routeKey={state.view}>
+      {screen}
+    </PageTransition>
+  );
 }
 
 function App() {

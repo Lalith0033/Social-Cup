@@ -61,6 +61,37 @@ Check:
 Verify dependencies before startup by checking the root `node_modules` and the
 workspace manifests. Do not modify `.env` files or database configuration.
 
+## Browser launch
+
+After all four applications pass validation, open the user-facing applications
+in one new Google Chrome window, with one application per tab:
+
+```powershell
+$chrome = @(
+  (Get-Command chrome.exe -ErrorAction SilentlyContinue).Source,
+  "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
+  "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe"
+) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+if ($chrome) {
+  Start-Process $chrome -ArgumentList `
+    '--new-window',
+    'http://localhost:4000',
+    'http://localhost:4002',
+    'http://localhost:4001'
+} else {
+  Write-Output 'Chrome not found; applications remain available at their local URLs.'
+}
+```
+
+The single `Start-Process` call and `--new-window` flag intentionally open one
+Chrome window containing three tabs. Chrome may reuse an existing browser
+process internally, but it must not launch one separate process per
+application.
+
+Launching Chrome is a convenience step and must not change the service status:
+if Chrome is unavailable, report `Browser : NOT LAUNCHED (Chrome not found)` and
+still report the validated applications normally.
+
 ## Failure handling
 
 If startup or validation fails, inspect the actual process output and report
@@ -89,6 +120,7 @@ Admin      : RUNNING / FAILED / REUSED
 Barista    : RUNNING / FAILED / REUSED
 
 API Health : PASS / FAIL
+Browser    : LAUNCHED / NOT LAUNCHED (Chrome not found)
 Git Status : CLEAN / CHANGED
 
 Deployment : NOT PERFORMED (local only)
